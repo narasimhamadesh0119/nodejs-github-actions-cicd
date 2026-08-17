@@ -1,0 +1,23 @@
+name : nodejs-github-actions-ci-cd
+on:
+  push:
+    branches:
+      - main
+jobs:
+  test:
+   runs-on: ubuntu-latest
+
+   steps:
+    - name: checkout code 
+      uses: action/checkout@v4
+
+    - name: setup Node js 
+      uses: action/setup-node@v4
+      with:
+        node-version: 20 
+    
+    - name: install dependencies
+      run: npm ci 
+    
+    - name: Run tests
+      run: npm test  
