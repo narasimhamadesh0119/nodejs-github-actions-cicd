@@ -21,7 +21,7 @@ const app = express();
 const port = 3040;
 
 app.get("/", (req, res) => {
-  res.send("GitHub Actions are working fine");
+  res.send("GitHub Actions are working fine , Developed by Github Community");
 });
 
 if (require.main === module) {
