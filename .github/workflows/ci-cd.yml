@@ -5,6 +5,8 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: nodejs-github-actions-cicd
   NODE_VERSION: 20
@@ -28,6 +30,7 @@ jobs:
 
       - name: Run tests
         run: npm test
+
 
   docker:
     needs: test
@@ -54,3 +57,51 @@ jobs:
         run: |
           docker push ${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
           docker push ${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+
+          script: |
+            echo "==========================="
+            echo "Starting deployment"
+            echo "==========================="
+
+            echo "Pulling Docker image"
+
+            docker pull ${{ vars.DOCKER_USERNAME }}/nodejs-github-actions-cicd:latest
+
+            echo "Stopping existing container"
+
+            docker stop nodejs-app || true
+
+            echo "Removing existing container"
+
+            docker rm nodejs-app || true
+
+            echo "Starting new container"
+
+            docker run -d \
+              --name nodejs-app \
+              --restart unless-stopped \
+              -p 3000:3040 \
+              ${{ vars.DOCKER_USERNAME }}/nodejs-github-actions-cicd:latest
+
+            echo "Cleaning unused Docker images"
+
+            docker image prune -f
+
+            echo "=========================="
+            echo "Deployment completed"
+            echo "=========================="
+
+            docker ps
